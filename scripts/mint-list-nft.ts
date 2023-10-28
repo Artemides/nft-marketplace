@@ -1,6 +1,7 @@
 import { ethers } from "hardhat";
 import { Marketplace, NFTMarket, Nft } from "../typechain-types";
 import { ContractTransactionReceipt, EventLog } from "ethers";
+import { NFTListenOnEvent } from "../typechain-types/contracts/NFTMarket";
 
 async function mintAndListNft() {
     const NFT_PRICE = ethers.parseEther("0.01");
@@ -22,7 +23,7 @@ async function mintAndListNft() {
     await nft.approve(marketplaceAddress, tokenId);
 
     console.log(`Marketplace listing NFT ${tokenId}`);
-    const listingEvent = marketplace.getEvent("NFTListenOn");
+
     await marketplace.listNft(nftAddress, tokenId, NFT_PRICE);
 }
 

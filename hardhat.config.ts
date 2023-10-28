@@ -4,8 +4,8 @@ import "hardhat-deploy";
 import "@nomiclabs/hardhat-ethers";
 import "solidity-coverage";
 import "dotenv/config";
-
-const etherscanApiKey = process.env.ETHERSCAN_API_KEY;
+import "./tasks/export-typechain";
+const etherscanApiKey = process.env.ETHERSCAN_API_KEY || "";
 
 const config: HardhatUserConfig = {
     solidity: "0.8.18",
