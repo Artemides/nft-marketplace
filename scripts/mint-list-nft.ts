@@ -1,11 +1,11 @@
 import { ethers } from "hardhat";
-import { Marketplace, Nft } from "../typechain-types";
+import { Marketplace, NFTMarket, Nft } from "../typechain-types";
 import { ContractTransactionReceipt, EventLog } from "ethers";
 
 async function mintAndListNft() {
     const NFT_PRICE = ethers.parseEther("0.01");
 
-    const marketplace: Marketplace = await ethers.getContract("Marketplace");
+    const marketplace: NFTMarket = await ethers.getContract("NFTMarket");
     const marketplaceAddress = await marketplace.getAddress();
     const nft: Nft = await ethers.getContract("Nft");
     const nftAddress = await nft.getAddress();
@@ -22,7 +22,7 @@ async function mintAndListNft() {
     await nft.approve(marketplaceAddress, tokenId);
 
     console.log(`Marketplace listing NFT ${tokenId}`);
-
+    const listingEvent = marketplace.getEvent("NFTListenOn");
     await marketplace.listNft(nftAddress, tokenId, NFT_PRICE);
 }
 

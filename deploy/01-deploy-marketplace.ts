@@ -5,7 +5,7 @@ import { verify } from "../utils/verify";
 
 const etherscanApiKey = process.env.ETHERSCAN_API_KEY || "";
 
-const marketplaceDeploy = async (hre: HardhatRuntimeEnvironment) => {
+const nftMarketDeploy = async (hre: HardhatRuntimeEnvironment) => {
     const {
         getNamedAccounts,
         deployments: { log, deploy },
@@ -15,18 +15,18 @@ const marketplaceDeploy = async (hre: HardhatRuntimeEnvironment) => {
 
     const { deployer } = await getNamedAccounts();
     let args: any[] = [];
-    log("Deploying Marketplace...");
-    const marketplace = await deploy("Marketplace", {
+    log("Deploying NFTMarket...");
+    const nftMarket = await deploy("NFTMarket", {
         from: deployer,
         args,
         log: true,
         waitConfirmations,
     });
     if (!developmentChain.includes(network.name) && etherscanApiKey) {
-        await verify(marketplace.address, args);
+        await verify(nftMarket.address, args);
     }
 };
 
-export default marketplaceDeploy;
+export default nftMarketDeploy;
 
-marketplaceDeploy.tags = ["all", "marketplace"];
+nftMarketDeploy.tags = ["all", "nftMarket"];

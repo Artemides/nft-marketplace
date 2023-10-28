@@ -20,7 +20,7 @@ import { HardhatEthersSigner } from "@nomicfoundation/hardhat-ethers/signers";
               deployer = _deployer;
               buyer = _buyer;
               await deployments.fixture(["all"]);
-              marketplace = await ethers.getContract("Marketplace");
+              marketplace = await ethers.getContract("NFTMarket");
               marketplaceAddress = await marketplace.getAddress();
               nft = await ethers.getContract("Nft", deployer);
               nftAddress = await nft.getAddress();
@@ -64,7 +64,7 @@ import { HardhatEthersSigner } from "@nomicfoundation/hardhat-ethers/signers";
                   await nft.approve(marketplaceAddress, tokenId);
                   await expect(marketplace.listNft(nftAddress, tokenId, NFT_PRICE)).to.emit(
                       marketplace,
-                      "NftListedOn"
+                      "NFTListenOn"
                   );
               });
 

@@ -5,6 +5,7 @@ import "@openzeppelin/contracts/interfaces/IERC721.sol";
 import "@openzeppelin/contracts/token/ERC721/extensions/ERC721URIStorage.sol";
 import "@openzeppelin/contracts/utils/Context.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
+import "hardhat/console.sol";
 
 contract NFTMarket is Context, ReentrancyGuard {
     struct MarketNft {
@@ -110,10 +111,10 @@ contract NFTMarket is Context, ReentrancyGuard {
 
     function _isAuthorized(address nftAddress, uint256 tokenId) internal view returns (bool) {
         IERC721 nft = IERC721(nftAddress);
-        bool isApproved = nft.getApproved(tokenId) != address(this);
+        bool isApproved = nft.getApproved(tokenId) == address(this);
         address nftOwner = nft.ownerOf(tokenId);
         bool isApprovedForAll = nft.isApprovedForAll(nftOwner, address(this));
-
+        console.log(">>>", isApproved, isApprovedForAll);
         return isApproved || isApprovedForAll;
     }
 
