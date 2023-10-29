@@ -4,6 +4,7 @@ import "hardhat-deploy";
 import "@nomiclabs/hardhat-ethers";
 import "solidity-coverage";
 import "dotenv/config";
+import "@typechain/hardhat";
 import "./tasks/export-typechain";
 const etherscanApiKey = process.env.ETHERSCAN_API_KEY || "";
 
@@ -30,6 +31,10 @@ const config: HardhatUserConfig = {
     etherscan: {
         apiKey: etherscanApiKey,
     },
+    // typechain: {
+    //     target: "ethers-v6",
+    //     outDir: "../nft-marketplace-server/typechain-types",
+    // },
 };
 
 export default config;

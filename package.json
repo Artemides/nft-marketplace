@@ -21,6 +21,8 @@
   },
   "devDependencies": {
     "@nomicfoundation/hardhat-toolbox": "^3.0.0",
-    "@types/fs-extra": "^11.0.3"
+    "@typechain/hardhat": "^9.1.0",
+    "@types/fs-extra": "^11.0.3",
+    "typechain": "^8.3.2"
   }
 }

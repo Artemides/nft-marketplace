@@ -23,3 +23,18 @@ export function filePathInDir(folderSrc: string, filename: string): string | nul
         return null;
     }
 }
+
+export function writeFileSyncTo(dir: string, fileName: string, dst: string) {
+    const filePath = filePathInDir(dir, fileName);
+    if (!filePath) {
+        console.error(`unable to export ${fileName} from ${dir} to ${dst}`);
+        return;
+    }
+
+    const baseDir = path.dirname(__dirname);
+    const fileDestination = path.join(dst, filePath.replace(baseDir, ""));
+    fs.createFileSync(fileDestination);
+    fs.copySync(filePath, fileDestination);
+
+    console.log(` successfully exported ${fileName} to ${dst} `);
+}
