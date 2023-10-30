@@ -1,14 +1,14 @@
-import { ethers } from "hardhat";
-import { Marketplace, NFTMarket, Nft } from "../typechain-types";
+import { ethers, getNamedAccounts } from "hardhat";
+import { NFTMarket, Nft } from "../typechain-types";
 import { ContractTransactionReceipt, EventLog } from "ethers";
-import { NFTListenOnEvent } from "../typechain-types/contracts/NFTMarket";
 
 async function mintAndListNft() {
     const NFT_PRICE = ethers.parseEther("0.01");
 
+    const { deployer } = await getNamedAccounts();
     const marketplace: NFTMarket = await ethers.getContract("NFTMarket");
     const marketplaceAddress = await marketplace.getAddress();
-    const nft: Nft = await ethers.getContract("Nft");
+    const nft: Nft = await ethers.getContract("Nft", deployer);
     const nftAddress = await nft.getAddress();
 
     console.log("Minting NFT");
@@ -27,7 +27,7 @@ async function mintAndListNft() {
     await marketplace.listNft(nftAddress, tokenId, NFT_PRICE);
 }
 
-function findEvent(logs: EventLog[], eventName: string) {
+export function findEvent(logs: EventLog[], eventName: string) {
     const event = logs.find((log) => log.eventName === eventName);
 
     return event;
