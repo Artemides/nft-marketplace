@@ -5,11 +5,11 @@ import "./MyTokenURI.sol";
 import "@openzeppelin/contracts/utils/Counters.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 
-contract GreeKToken is MyTokenURI, Ownable {
+contract AstroNFT is MyTokenURI, Ownable {
     using Counters for Counters.Counter;
     Counters.Counter private _tokenIds;
 
-    constructor() MyERC721("greek", "GRK") {}
+    constructor() MyERC721("Astro", "ASTR") {}
 
     function mint() public onlyOwner {
         _tokenIds.increment();

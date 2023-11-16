@@ -28,6 +28,10 @@ const config: HardhatUserConfig = {
             37337: 1,
         },
     },
+    // paths: {
+    //     // artifacts: "../nft-marketplace-ui/artifacts",
+    //     deployments: "../nft-marketplace-ui/deployments",
+    // },
     etherscan: {
         apiKey: etherscanApiKey,
     },
@@ -38,3 +42,4 @@ const config: HardhatUserConfig = {
 };
 
 export default config;
+4;
