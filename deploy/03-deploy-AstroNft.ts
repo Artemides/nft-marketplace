@@ -18,7 +18,7 @@ const deployAstro = async (hre: HardhatRuntimeEnvironment) => {
         waitConfirmations: 1,
     });
 
-    if (developmentChain.includes(network.name)) {
+    if (!developmentChain.includes(network.name)) {
         await verify(astro.address, astroArgs);
     }
 };
