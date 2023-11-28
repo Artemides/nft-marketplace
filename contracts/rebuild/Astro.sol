@@ -14,7 +14,8 @@ contract AstroNFT is ERC721, ERC721URIStorage, ERC721Burnable, Ownable {
     constructor() ERC721("Astro", "ASTR") Ownable(_msgSender()) {}
 
     function mint(string memory _tokenURI) public returns (uint256) {
-        uint256 newTokenId = _nextTokenId++;
+        _nextTokenId++;
+        uint256 newTokenId = _nextTokenId;
         _safeMint(_msgSender(), newTokenId);
         _setTokenURI(newTokenId, _tokenURI);
         return newTokenId;
@@ -22,7 +23,7 @@ contract AstroNFT is ERC721, ERC721URIStorage, ERC721Burnable, Ownable {
 
     function updateTokenURI(uint256 tokenId, string memory _tokenURI) public {
         address owner = ERC721.ownerOf(tokenId);
-        if (owner != address(0) && owner == _msgSender()) {
+        if (owner == address(0) || owner != _msgSender()) {
             revert Astro__OnlyOwner();
         }
 

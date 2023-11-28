@@ -6,7 +6,7 @@ import { assert, expect } from "chai";
 
 !developmentChain.includes(network.name)
   ? describe.skip
-  : describe("Astro Test", () => {
+  : describe("  ", () => {
       const TOKEN_URI = "ipfs://pinata.gateway/";
       let deployerSigner: Signer;
       let buyerSigner: Signer;
@@ -48,8 +48,9 @@ import { assert, expect } from "chai";
 
         it("should let update nft URI only to Token Owner", async () => {
           const tx = Astro.connect(buyerSigner).updateTokenURI(tokenId, newURI);
-          await expect(tx).to.be.revertedWith(
-            "Only token Owner can update its URI",
+          await expect(tx).to.be.revertedWithCustomError(
+            Astro,
+            "Astro__OnlyOwner",
           );
         });
 
@@ -60,10 +61,17 @@ import { assert, expect } from "chai";
             Astro.getEvent("MetadataUpdate").name,
           );
         });
+
         describe("Burn Token", () => {
           it("should burn the token and remove its URI", async () => {
             const tx = Astro.burn(tokenId);
-            await expect(tx).to.emit(Astro, Astro.getEvent("Transfer").name);
+            const deployerAddress = await deployerSigner.getAddress();
+            await expect(tx)
+              .to.emit(Astro, Astro.getEvent("Transfer").name)
+              .withArgs(deployerAddress, ethers.ZeroAddress, tokenId);
+
+            const balance = await Astro.balanceOf(deployerSigner);
+            assert.equal(balance, BigInt(0));
           });
         });
       });
