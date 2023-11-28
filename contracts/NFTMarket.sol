@@ -4,7 +4,7 @@ pragma solidity ^0.8.18;
 import "@openzeppelin/contracts/interfaces/IERC721.sol";
 import "@openzeppelin/contracts/token/ERC721/extensions/ERC721URIStorage.sol";
 import "@openzeppelin/contracts/utils/Context.sol";
-import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
+import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import "hardhat/console.sol";
 
 contract NFTMarket is Context, ReentrancyGuard {
@@ -16,8 +16,16 @@ contract NFTMarket is Context, ReentrancyGuard {
     mapping(address => mapping(uint256 => MarketNft)) _marketNfts;
     mapping(address => uint256) _sellings;
 
-    event NFTListenOn(address indexed nftAddress, uint256 tokenId, uint256 price);
-    event NFTPurchased(address indexed nftAddress, uint256 tokenId, uint256 price);
+    event NFTListenOn(
+        address indexed nftAddress,
+        uint256 tokenId,
+        uint256 price
+    );
+    event NFTPurchased(
+        address indexed nftAddress,
+        uint256 tokenId,
+        uint256 price
+    );
     event NFTUnlisted(address indexed nftAddress, uint256 tokenId);
     event NFTPriceUpdated(
         address indexed nftAddress,
@@ -30,7 +38,11 @@ contract NFTMarket is Context, ReentrancyGuard {
     error NFTMarket__NftUnauthorized();
     error NFTMarket__NftAlreadyListed();
     error NFTMarket__NoNftOwner();
-    error NFTMarket__InsufficientPrice(address nftAddress, uint256 tokenId, uint256 price);
+    error NFTMarket__InsufficientPrice(
+        address nftAddress,
+        uint256 tokenId,
+        uint256 price
+    );
     error NFTMarket__InsufficientFunds();
     error NFTMarket__Withdraw();
     error NFTMarket__SelfPurchase();
@@ -51,7 +63,8 @@ contract NFTMarket is Context, ReentrancyGuard {
     ) external onlyNftOwner(nftAddress, tokenId) {
         if (isListed(nftAddress, tokenId)) revert NFTMarket__NftAlreadyListed();
         if (price <= 0) revert NFTMarket__PriceMustBeAboveZero();
-        if (!_isAuthorized(nftAddress, tokenId)) revert NFTMarket__NftUnauthorized();
+        if (!_isAuthorized(nftAddress, tokenId))
+            revert NFTMarket__NftUnauthorized();
 
         _marketNfts[nftAddress][tokenId] = MarketNft(price, _msgSender());
 
@@ -109,7 +122,10 @@ contract NFTMarket is Context, ReentrancyGuard {
         if (!success) revert NFTMarket__Withdraw();
     }
 
-    function _isAuthorized(address nftAddress, uint256 tokenId) internal view returns (bool) {
+    function _isAuthorized(
+        address nftAddress,
+        uint256 tokenId
+    ) internal view returns (bool) {
         IERC721 nft = IERC721(nftAddress);
         bool isApproved = nft.getApproved(tokenId) == address(this);
         address nftOwner = nft.ownerOf(tokenId);
@@ -118,7 +134,10 @@ contract NFTMarket is Context, ReentrancyGuard {
         return isApproved || isApprovedForAll;
     }
 
-    function isListed(address nftAddress, uint256 tokenId) internal view returns (bool) {
+    function isListed(
+        address nftAddress,
+        uint256 tokenId
+    ) internal view returns (bool) {
         MarketNft memory nft = _marketNfts[nftAddress][tokenId];
         return nft.owner != address(0) && nft.price > 0;
     }
@@ -127,7 +146,10 @@ contract NFTMarket is Context, ReentrancyGuard {
         return _sellings[seller];
     }
 
-    function getNft(address nftAddress, uint256 tokenId) public view returns (MarketNft memory) {
+    function getNft(
+        address nftAddress,
+        uint256 tokenId
+    ) public view returns (MarketNft memory) {
         return _marketNfts[nftAddress][tokenId];
     }
 }

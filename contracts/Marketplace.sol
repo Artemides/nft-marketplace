@@ -2,7 +2,7 @@
 pragma solidity ^0.8.8;
 
 import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
-import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
+import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 
 contract Marketplace is ReentrancyGuard {
     struct NftItem {
@@ -13,10 +13,22 @@ contract Marketplace is ReentrancyGuard {
     mapping(address => mapping(uint256 => NftItem)) s_nfts;
     mapping(address => uint256) s_sellings;
 
-    event NftListedOn(address indexed nftAddress, uint256 tokenId, uint256 price);
-    event NftPurchased(address indexed nftAddress, uint256 tokenId, uint256 price);
+    event NftListedOn(
+        address indexed nftAddress,
+        uint256 tokenId,
+        uint256 price
+    );
+    event NftPurchased(
+        address indexed nftAddress,
+        uint256 tokenId,
+        uint256 price
+    );
     event NftUnlisted(address indexed nftAddress, uint256 tokenId);
-    event NftPriceUpdated(address indexed nftAddress, uint256 tokenId, uint256 newPrice);
+    event NftPriceUpdated(
+        address indexed nftAddress,
+        uint256 tokenId,
+        uint256 newPrice
+    );
 
     error Marketplace__PriceMustBeAboveZero();
     error Marketplace__NftUnAuthorized();
@@ -69,7 +81,11 @@ contract Marketplace is ReentrancyGuard {
     ) {
         NftItem memory nft = s_nfts[nftAddress][tokenId];
         if (nft.owner == buyer)
-            revert Marketplace__SelfNftPurchaseNotAllowed(nftAddress, tokenId, nft.owner);
+            revert Marketplace__SelfNftPurchaseNotAllowed(
+                nftAddress,
+                tokenId,
+                nft.owner
+            );
 
         _;
     }
@@ -87,12 +103,17 @@ contract Marketplace is ReentrancyGuard {
         address nftAddress,
         uint256 tokenId,
         uint256 price
-    ) external onlyOwner(nftAddress, tokenId, msg.sender) onlyUnlisted(nftAddress, tokenId) {
+    )
+        external
+        onlyOwner(nftAddress, tokenId, msg.sender)
+        onlyUnlisted(nftAddress, tokenId)
+    {
         if (price <= 0) revert Marketplace__PriceMustBeAboveZero();
 
         IERC721 nft = IERC721(nftAddress);
 
-        if (nft.getApproved(tokenId) != address(this)) revert Marketplace__NftUnAuthorized();
+        if (nft.getApproved(tokenId) != address(this))
+            revert Marketplace__NftUnAuthorized();
 
         s_nfts[nftAddress][tokenId] = NftItem(price, msg.sender);
 
@@ -119,7 +140,11 @@ contract Marketplace is ReentrancyGuard {
         NftItem memory nft = s_nfts[nftAddress][tokenId];
 
         if (nft.price != msg.value)
-            revert Marketplace__UnsufficientPrice(nftAddress, tokenId, nft.price);
+            revert Marketplace__UnsufficientPrice(
+                nftAddress,
+                tokenId,
+                nft.price
+            );
 
         s_sellings[nft.owner] += msg.value;
         delete s_nfts[nftAddress][tokenId];
@@ -131,7 +156,11 @@ contract Marketplace is ReentrancyGuard {
     function unlistNft(
         address nftAddress,
         uint256 tokenId
-    ) external onlyOwner(nftAddress, tokenId, msg.sender) onlyListed(nftAddress, tokenId) {
+    )
+        external
+        onlyOwner(nftAddress, tokenId, msg.sender)
+        onlyListed(nftAddress, tokenId)
+    {
         delete s_nfts[nftAddress][tokenId];
         emit NftUnlisted(nftAddress, tokenId);
     }
@@ -140,7 +169,11 @@ contract Marketplace is ReentrancyGuard {
         address nftAddress,
         uint256 tokenId,
         uint256 newPrice
-    ) external onlyOwner(nftAddress, tokenId, msg.sender) onlyListed(nftAddress, tokenId) {
+    )
+        external
+        onlyOwner(nftAddress, tokenId, msg.sender)
+        onlyListed(nftAddress, tokenId)
+    {
         s_nfts[nftAddress][tokenId].price = newPrice;
         emit NftPriceUpdated(nftAddress, tokenId, newPrice);
     }
@@ -155,7 +188,10 @@ contract Marketplace is ReentrancyGuard {
         if (!success) revert Marketplace__WithdrawalError();
     }
 
-    function getNft(address nftAddress, uint256 tokenId) public view returns (NftItem memory) {
+    function getNft(
+        address nftAddress,
+        uint256 tokenId
+    ) public view returns (NftItem memory) {
         return s_nfts[nftAddress][tokenId];
     }
 

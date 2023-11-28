@@ -1,27 +1,31 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.18;
 
-import "@openzeppelin/contracts/utils/Counters.sol";
-import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Burnable.sol";
 import "@openzeppelin/contracts/token/ERC721/extensions/ERC721URIStorage.sol";
 import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
 
-contract AstroNFT is ERC721, ERC721URIStorage, Ownable, ERC721Burnable {
-    using Counters for Counters.Counter;
-    Counters.Counter private _tokenIds;
+contract AstroNFT is ERC721, ERC721URIStorage, ERC721Burnable, Ownable {
+    uint256 private _nextTokenId;
 
-    constructor() ERC721("Astro", "ASTR") {}
+    error Astro__OnlyOwner();
+
+    constructor() ERC721("Astro", "ASTR") Ownable(_msgSender()) {}
 
     function mint(string memory _tokenURI) public returns (uint256) {
-        _tokenIds.increment();
-        uint256 newTokenId = _tokenIds.current();
+        uint256 newTokenId = _nextTokenId++;
         _safeMint(_msgSender(), newTokenId);
         _setTokenURI(newTokenId, _tokenURI);
         return newTokenId;
     }
 
-    function setTokenURI(uint256 tokenId, string memory _tokenURI) public {
+    function updateTokenURI(uint256 tokenId, string memory _tokenURI) public {
+        address owner = ERC721.ownerOf(tokenId);
+        if (owner != address(0) && owner == _msgSender()) {
+            revert Astro__OnlyOwner();
+        }
+
         _setTokenURI(tokenId, _tokenURI);
     }
 
@@ -31,20 +35,9 @@ contract AstroNFT is ERC721, ERC721URIStorage, Ownable, ERC721Burnable {
         return super.supportsInterface(interfaceId);
     }
 
-    function burn(uint256 tokenId) public override(ERC721Burnable) {
-        _burn(tokenId);
-        super.burn(tokenId);
-    }
-
     function tokenURI(
         uint256 tokenId
     ) public view override(ERC721, ERC721URIStorage) returns (string memory) {
         return super.tokenURI(tokenId);
-    }
-
-    function _burn(
-        uint256 tokenId
-    ) internal override(ERC721URIStorage, ERC721) {
-        super._burn(tokenId);
     }
 }
