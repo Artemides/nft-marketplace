@@ -6,7 +6,7 @@ import { assert, expect } from "chai";
 
 !developmentChain.includes(network.name)
   ? describe.skip
-  : describe("  ", () => {
+  : describe("Astro NFT", () => {
       const TOKEN_URI = "ipfs://pinata.gateway/";
       let deployerSigner: Signer;
       let buyerSigner: Signer;
@@ -63,6 +63,22 @@ import { assert, expect } from "chai";
         });
 
         describe("Burn Token", () => {
+          it("reverts an attempt of burning a non existing token", async () => {
+            const tx = Astro.connect(buyerSigner).burn(tokenId + BigInt(1));
+            await expect(tx).to.revertedWithCustomError(
+              Astro,
+              "ERC721NonexistentToken",
+            );
+          });
+
+          it("should allow only the owner to burn the token", async () => {
+            const tx = Astro.connect(buyerSigner).burn(tokenId);
+            await expect(tx).to.revertedWithCustomError(
+              Astro,
+              "ERC721InsufficientApproval",
+            );
+          });
+
           it("should burn the token and remove its URI", async () => {
             const tx = Astro.burn(tokenId);
             const deployerAddress = await deployerSigner.getAddress();
@@ -72,6 +88,14 @@ import { assert, expect } from "chai";
 
             const balance = await Astro.balanceOf(deployerSigner);
             assert.equal(balance, BigInt(0));
+          });
+
+          it("reverts retrieving a burned tokenURI", async () => {
+            await Astro.burn(tokenId);
+            await expect(Astro.tokenURI(tokenId)).to.be.revertedWithCustomError(
+              Astro,
+              `ERC721NonexistentToken`,
+            );
           });
         });
       });

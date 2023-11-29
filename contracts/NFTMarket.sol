@@ -13,8 +13,8 @@ contract NFTMarket is Context, ReentrancyGuard {
         address owner;
     }
 
-    mapping(address => mapping(uint256 => MarketNft)) _marketNfts;
-    mapping(address => uint256) _sellings;
+    mapping(address nftAdds => mapping(uint256 tokenId => MarketNft)) _marketNfts;
+    mapping(address owner => uint256) _sellings;
 
     event NFTListenOn(
         address indexed nftAddress,
