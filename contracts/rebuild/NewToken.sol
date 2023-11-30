@@ -94,6 +94,164 @@ abstract contract NewToken is
         _setApprovalForAll(_msgSender(), operator, approved);
     }
 
+    function transferFrom(
+        address from,
+        address to,
+        uint256 tokenId
+    ) public virtual {
+        if (to == address(0)) {
+            revert ERC721InvalidReceiver(address(0));
+        }
+
+        address lastOwner = _update(to, tokenId, _msgSender());
+        if (lastOwner != from) {
+            revert ERC721IncorrectOwner(from, tokenId, lastOwner);
+        }
+    }
+
+    function safeTransferFrom(
+        address from,
+        address to,
+        uint256 tokenId
+    ) public virtual {
+        safeTransferFrom(from, to, tokenId, "");
+    }
+
+    function safeTransferFrom(
+        address from,
+        address to,
+        uint256 tokenId,
+        bytes memory data
+    ) public virtual {
+        transferFrom(from, to, tokenId);
+        _checkOnERC721Received(from, to, tokenId, data);
+    }
+
+    function _mint(address to, uint256 tokenId) internal {
+        if (to == address(0)) {
+            revert ERC721InvalidReceiver(to);
+        }
+
+        address lastOwner = _update(to, tokenId, address(0));
+        if (lastOwner != address(0)) {
+            revert ERC721InvalidSender(address(0));
+        }
+    }
+
+    function _safeMint(address to, uint256 tokenId) internal {
+        _safeMint(to, tokenId, "");
+    }
+
+    function _safeMint(
+        address to,
+        uint256 tokenId,
+        bytes memory data
+    ) internal {
+        _mint(to, tokenId);
+        _checkOnERC721Received(address(0), to, tokenId, data);
+    }
+
+    function _burn(uint256 tokenId) internal {
+        address oldOwner = _update(address(0), tokenId, address(0));
+        if (oldOwner == address(0)) {
+            revert ERC721NonexistentToken(tokenId);
+        }
+    }
+
+    function _transfer(
+        address from,
+        address to,
+        uint256 tokenId
+    ) internal virtual {
+        if (to == address(0)) {
+            revert ERC721InvalidReceiver(address(0));
+        }
+
+        address oldOwner = _update(to, tokenId, address(0));
+        if (oldOwner == address(0)) {
+            revert ERC721NonexistentToken(tokenId);
+        } else if (oldOwner != from) {
+            revert ERC721IncorrectOwner(from, tokenId, oldOwner);
+        }
+    }
+
+    function _safeTransfer(
+        address from,
+        address to,
+        uint256 tokenId
+    ) internal virtual {
+        _safeTransfer(from, to, tokenId, "");
+    }
+
+    function _safeTransfer(
+        address from,
+        address to,
+        uint256 tokenId,
+        bytes memory data
+    ) internal virtual {
+        _transfer(from, to, tokenId);
+        _checkOnERC721Received(from, to, tokenId, data);
+    }
+
+    // TEST from address(0) tokenId: 99999
+    function _update(
+        address to,
+        uint256 tokenId,
+        address auth
+    ) internal virtual returns (address) {
+        address from = _ownerOf(tokenId);
+
+        if (auth != address(0)) {
+            _checkAuthorized(from, auth, tokenId);
+        }
+
+        if (from != address(0)) {
+            _approve(address(0), tokenId, address(0), false);
+
+            unchecked {
+                _balances[from] -= 1;
+            }
+        }
+
+        if (to != address(0)) {
+            unchecked {
+                _balances[to] += 1;
+            }
+        }
+
+        _owners[tokenId] = to;
+
+        emit Transfer(from, to, tokenId);
+
+        return from;
+    }
+
+    function _checkAuthorized(
+        address owner,
+        address spender,
+        uint256 tokenId
+    ) internal view virtual {
+        if (!_isAuthorized(owner, spender, tokenId)) {
+            if (owner == address(0)) {
+                revert ERC721NonexistentToken(tokenId);
+            }
+
+            revert ERC721InsufficientApproval(spender, tokenId);
+        }
+    }
+
+    function _isAuthorized(
+        address owner,
+        address spender,
+        uint256 tokenId
+    ) internal view virtual returns (bool) {
+        return
+            spender != address(0) &&
+            (owner == spender ||
+                isApprovedForAll(owner, spender) ||
+                _getApproved(tokenId) == spender);
+    }
+
     function _approve(
         address to,
         uint256 tokenId,
@@ -164,5 +322,35 @@ abstract contract NewToken is
         uint256 tokenId
     ) internal view virtual returns (address) {
         return _tokenApprovals[tokenId];
+    }
+
+    function _checkOnERC721Received(
+        address from,
+        address to,
+        uint256 tokenId,
+        bytes memory data
+    ) private {
+        if (to.code.length > 1) {
+            try
+                IERC721Receiver(to).onERC721Received(
+                    _msgSender(),
+                    from,
+                    tokenId,
+                    data
+                )
+            returns (bytes4 response) {
+                if (response != IERC721Receiver.onERC721Received.selector) {
+                    revert ERC721InvalidReceiver(to);
+                }
+            } catch (bytes memory reason) {
+                if (reason.length == 0) {
+                    revert ERC721InvalidReceiver(to);
+                } else {
+                    assembly {
+                        revert(add(32, reason), mload(reason))
+                    }
+                }
+            }
+        }
     }
 }
