@@ -1,142 +1,138 @@
 import { deployments, ethers, getNamedAccounts, network } from "hardhat";
 import { developmentChain } from "../hardhat.helper";
-import { Marketplace, Nft } from "../typechain-types";
+import { AstroNFT, NFTMarket } from "../typechain-types";
 import { assert, expect } from "chai";
-import { ContractRunner, parseEther } from "ethers";
+import { parseEther } from "ethers";
 import { HardhatEthersSigner } from "@nomicfoundation/hardhat-ethers/signers";
+import { mintAstroTokens } from "../utils/mintNft";
 
 !developmentChain.includes(network.name)
   ? describe.skip
-  : describe("Marketplace", () => {
+  : describe("NFTMarket", () => {
+      const TOKEN_URI = "ipfs://pinata.gatewat/";
       let deployer: HardhatEthersSigner;
       let buyer: HardhatEthersSigner;
-      let marketplace: Marketplace;
+      let marketplace: NFTMarket;
       let marketplaceAddress: string;
-      let nft: Nft;
-      let nftAddress: string;
+      let Astro: AstroNFT;
+      let astroAddress: string;
       const NFT_PRICE = ethers.parseEther("0.01");
       beforeEach(async () => {
-        const [_deployer, _buyer] = await ethers.getSigners();
-        deployer = _deployer;
-        buyer = _buyer;
+        [deployer, buyer] = await ethers.getSigners();
+
         await deployments.fixture(["all"]);
         marketplace = await ethers.getContract("NFTMarket");
         marketplaceAddress = await marketplace.getAddress();
-        nft = await ethers.getContract("Nft", deployer);
-        nftAddress = await nft.getAddress();
+        Astro = await ethers.getContract("AstroNFT", deployer);
+        astroAddress = await Astro.getAddress();
       });
 
       describe("Listing a NFT", () => {
         let tokenId: bigint;
+        let otherTokenId: bigint;
         beforeEach(async () => {
-          await nft.mint();
-          tokenId = await nft.getTokenCounter();
+          [tokenId, otherTokenId] = await mintAstroTokens(Astro, 2);
         });
 
         it("Reverts if the deployer is not the owner ", async () => {
           await expect(
-            marketplace.connect(buyer).listNft(nftAddress, tokenId, NFT_PRICE),
-          ).to.be.revertedWithCustomError(
-            marketplace,
-            "Marketplace__NotNftOwner",
-          );
+            marketplace
+              .connect(buyer)
+              .listNft(astroAddress, tokenId, NFT_PRICE),
+          ).to.be.revertedWithCustomError(marketplace, "NFTMarket__NoNftOwner");
         });
 
         it("Reverts if the Marketpalce is not authorized to handle this NFT", async () => {
           await expect(
-            marketplace.listNft(nftAddress, tokenId, NFT_PRICE),
+            marketplace.listNft(astroAddress, tokenId, NFT_PRICE),
           ).to.be.revertedWithCustomError(
             marketplace,
-            "Marketplace__NftUnAuthorized",
+            "NFTMarket__NftUnauthorized",
           );
         });
 
-        it("Reverts if the nft has been already listed", async () => {
-          await nft.approve(marketplaceAddress, tokenId);
-          await marketplace.listNft(nftAddress, tokenId, NFT_PRICE);
+        it("Reverts if any Astro NFT has been already listed", async () => {
+          await Astro.approve(marketplaceAddress, tokenId);
+          await marketplace.listNft(astroAddress, tokenId, NFT_PRICE);
           await expect(
-            marketplace.listNft(nftAddress, tokenId, NFT_PRICE),
+            marketplace.listNft(astroAddress, tokenId, NFT_PRICE),
           ).to.be.revertedWithCustomError(
             marketplace,
-            "Marketplace__NftAlreadyListed",
+            "NFTMarket__NftAlreadyListed",
           );
         });
 
         it("Won't list NFTs with zero price", async () => {
-          await nft.approve(marketplaceAddress, tokenId);
+          await Astro.approve(marketplaceAddress, tokenId);
           await expect(
-            marketplace.listNft(nftAddress, tokenId, 0),
+            marketplace.listNft(astroAddress, tokenId, 0),
           ).to.be.revertedWithCustomError(
             marketplace,
-            "Marketplace__PriceMustBeAboveZero",
+            "NFTMarket__PriceMustBeAboveZero",
           );
         });
 
         it("List correctly the NFT on the Marketplace", async () => {
-          await nft.approve(marketplaceAddress, tokenId);
+          await Astro.approve(marketplaceAddress, tokenId);
           await expect(
-            marketplace.listNft(nftAddress, tokenId, NFT_PRICE),
+            marketplace.listNft(astroAddress, tokenId, NFT_PRICE),
           ).to.emit(marketplace, "NFTListenOn");
         });
 
         it("List the NFT with the correct Price", async () => {
-          await nft.approve(marketplaceAddress, tokenId);
-          await expect(marketplace.listNft(nftAddress, tokenId, NFT_PRICE))
-            .to.emit(marketplace, "NftListedOn")
-            .withArgs(nftAddress, tokenId, NFT_PRICE);
+          await Astro.approve(marketplaceAddress, tokenId);
+          await expect(marketplace.listNft(astroAddress, tokenId, NFT_PRICE))
+            .to.emit(marketplace, "NFTListenOn")
+            .withArgs(astroAddress, tokenId, NFT_PRICE);
         });
+
         describe("buy NFT ", () => {
           beforeEach(async () => {
-            await nft.approve(marketplaceAddress, tokenId);
-            await marketplace.listNft(nftAddress, tokenId, NFT_PRICE);
+            await Astro.approve(marketplaceAddress, tokenId);
+            await marketplace.listNft(astroAddress, tokenId, NFT_PRICE);
           });
 
           it("Reverts if the buying NFT is not listed on the marketplace", async () => {
-            await nft.mint();
-            const lastTokenId = await nft.getTokenCounter();
             await expect(
-              marketplace.buyNft(nftAddress, lastTokenId),
-            ).to.be.revertedWithCustomError(
-              marketplace,
-              "Marketplace__NftUnlisted",
-            );
+              marketplace.purchaseNft(astroAddress, tokenId + BigInt(1)),
+            ).to.be.revertedWithCustomError(marketplace, "NFTMarket__Unlisted");
           });
 
           it("Does not allow to buy your own NFT", async () => {
             await expect(
-              marketplace.buyNft(nftAddress, tokenId),
+              marketplace.purchaseNft(astroAddress, tokenId),
             ).to.be.revertedWithCustomError(
               marketplace,
-              "Marketplace__SelfNftPurchaseNotAllowed",
+              "NFTMarket__SelfPurchase",
             );
           });
 
-          it("Cancels the purchase if the purchase price is not enough", async () => {
+          it("Cancels the purchase if not enought funds to buy", async () => {
             const purchasePrice = parseEther("0");
             await expect(
               marketplace
                 .connect(buyer)
-                .buyNft(nftAddress, tokenId, { value: purchasePrice }),
+                .purchaseNft(astroAddress, tokenId, { value: purchasePrice }),
             ).to.be.revertedWithCustomError(
               marketplace,
-              "Marketplace__UnsufficientPrice",
+              "NFTMarket__InsufficientPrice",
             );
           });
 
           it("Increments the owner sales, unlists and changes of ownership", async () => {
             const [nftPrice, owner] = await marketplace.getNft(
-              nftAddress,
+              astroAddress,
               tokenId,
             );
             const initialOwnerSales = await marketplace.balanceOf(owner);
             await marketplace
               .connect(buyer)
-              .buyNft(nftAddress, 1, { value: nftPrice });
+              .purchaseNft(astroAddress, 1, { value: nftPrice });
             const finalOwnerSales = await marketplace.balanceOf(owner);
 
-            const newOwner = await nft.ownerOf(tokenId);
+            const newOwner = await Astro.ownerOf(tokenId);
             assert.equal(finalOwnerSales, initialOwnerSales + nftPrice);
-            expect(await marketplace.getNft(nftAddress, tokenId)).to.include(
+            expect(await marketplace.getNft(astroAddress, tokenId)).to.include(
               ethers.ZeroAddress,
             );
             assert.equal(newOwner, buyer.address);
@@ -144,33 +140,30 @@ import { HardhatEthersSigner } from "@nomicfoundation/hardhat-ethers/signers";
 
           describe("Unlisting from Marketplace", () => {
             it("Reverts if the token is not listed", async () => {
-              await nft.mint();
-              const lastTokenId = await nft.getTokenCounter();
               await expect(
-                marketplace.unlistNft(nftAddress, lastTokenId),
+                marketplace.unlistNft(astroAddress, otherTokenId),
               ).to.be.revertedWithCustomError(
                 marketplace,
-                "Marketplace__NftUnlisted",
+                "NFTMarket__Unlisted",
               );
             });
 
             it("Reverts if the action intended by another user", async () => {
               await expect(
-                marketplace.connect(buyer).unlistNft(nftAddress, tokenId),
+                marketplace.connect(buyer).unlistNft(astroAddress, tokenId),
               ).to.be.revertedWithCustomError(
                 marketplace,
-                "Marketplace__NotNftOwner",
+                "NFTMarket__NoNftOwner",
               );
             });
 
             it("Unlists successfully if performed by the owner over a listed NFT", async () => {
-              await expect(marketplace.unlistNft(nftAddress, tokenId)).to.emit(
-                marketplace,
-                "NftUnlisted",
-              );
-              expect(await marketplace.getNft(nftAddress, tokenId)).to.include(
-                ethers.ZeroAddress,
-              );
+              await expect(
+                marketplace.unlistNft(astroAddress, tokenId),
+              ).to.emit(marketplace, "NFTUnlisted");
+              expect(
+                await marketplace.getNft(astroAddress, tokenId),
+              ).to.include(ethers.ZeroAddress);
             });
           });
 
@@ -178,13 +171,15 @@ import { HardhatEthersSigner } from "@nomicfoundation/hardhat-ethers/signers";
             const NEW_PRICE = ethers.parseEther("0.1");
 
             it("Reverts if the token is not listed", async () => {
-              await nft.mint();
-              const lastTokenId = await nft.getTokenCounter();
               await expect(
-                marketplace.updateNftPrice(nftAddress, lastTokenId, NEW_PRICE),
+                marketplace.updateNftPrice(
+                  astroAddress,
+                  tokenId + BigInt(1),
+                  NEW_PRICE,
+                ),
               ).to.be.revertedWithCustomError(
                 marketplace,
-                "Marketplace__NftUnlisted",
+                "NFTMarket__Unlisted",
               );
             });
 
@@ -192,68 +187,71 @@ import { HardhatEthersSigner } from "@nomicfoundation/hardhat-ethers/signers";
               await expect(
                 marketplace
                   .connect(buyer)
-                  .updateNftPrice(nftAddress, tokenId, NEW_PRICE),
+                  .updateNftPrice(astroAddress, tokenId, NEW_PRICE),
               ).to.be.revertedWithCustomError(
                 marketplace,
-                "Marketplace__NotNftOwner",
+                "NFTMarket__NoNftOwner",
               );
             });
 
             it("Updates correctly the NFT listed price", async () => {
               await expect(
-                marketplace.updateNftPrice(nftAddress, tokenId, NEW_PRICE),
-              ).to.emit(marketplace, "NftPriceUpdated");
+                marketplace.updateNftPrice(astroAddress, tokenId, NEW_PRICE),
+              ).to.emit(marketplace, "NFTPriceUpdated");
 
-              const [newPrice] = await marketplace.getNft(nftAddress, tokenId);
+              const [newPrice] = await marketplace.getNft(
+                astroAddress,
+                tokenId,
+              );
               assert.equal(newPrice, NEW_PRICE);
             });
           });
         });
-      });
-      describe("Withdraw Sales", () => {
-        it("Revers if there is no funds to withdraw", async () => {
-          await expect(
-            marketplace.withdrawBalance(),
-          ).to.be.revertedWithCustomError(
-            marketplace,
-            "Marketplace__UnsufficientFunds",
-          );
-        });
-        it("Withdraws, restarts the sales to 0 and transfers the money to owner address", async () => {
-          const NFT_PRICE = ethers.parseEther("0.01");
 
-          await nft.mint();
-          const tokenId = await nft.getTokenCounter();
-          await nft.approve(marketplace, tokenId);
+        describe("Withdraw Sales", () => {
+          it("Revers if there is no funds to withdraw", async () => {
+            await expect(
+              marketplace.withdrawBalance(),
+            ).to.be.revertedWithCustomError(
+              marketplace,
+              "NFTMarket__InsufficientFunds",
+            );
+          });
 
-          await marketplace.listNft(nftAddress, tokenId, NFT_PRICE);
+          it("Withdraws, restarts the sales to 0 and transfers the money to owner address", async () => {
+            const NFT_PRICE = ethers.parseEther("0.01");
 
-          await marketplace
-            .connect(buyer)
-            .buyNft(nftAddress, tokenId, { value: NFT_PRICE });
+            await Astro.approve(marketplace, tokenId);
 
-          const initialDeployerBalance = await ethers.provider.getBalance(
-            deployer.address,
-          );
-          const startingSales = await marketplace.balanceOf(deployer);
-          const withdrawTx = await marketplace.withdrawBalance();
-          const withdrawTxReceipt = await withdrawTx.wait(1);
+            await marketplace.listNft(astroAddress, tokenId, NFT_PRICE);
 
-          let gasCost = BigInt(0);
-          if (withdrawTxReceipt) {
-            gasCost = withdrawTxReceipt.gasUsed * withdrawTxReceipt.gasPrice;
-          }
-          const finaLSales = await marketplace.balanceOf(deployer);
+            await marketplace
+              .connect(buyer)
+              .purchaseNft(astroAddress, tokenId, { value: NFT_PRICE });
 
-          const finalDeployerBalance = await ethers.provider.getBalance(
-            deployer.address,
-          );
+            const initialDeployerBalance = await ethers.provider.getBalance(
+              deployer.address,
+            );
+            const startingSales = await marketplace.balanceOf(deployer);
+            const withdrawTx = await marketplace.withdrawBalance();
+            const withdrawTxReceipt = await withdrawTx.wait(1);
 
-          assert.equal(finaLSales, BigInt(0));
-          assert.equal(
-            finalDeployerBalance,
-            initialDeployerBalance + startingSales - gasCost,
-          );
+            let gasCost = BigInt(0);
+            if (withdrawTxReceipt) {
+              gasCost = withdrawTxReceipt.gasUsed * withdrawTxReceipt.gasPrice;
+            }
+            const finaLSales = await marketplace.balanceOf(deployer);
+
+            const finalDeployerBalance = await ethers.provider.getBalance(
+              deployer.address,
+            );
+
+            assert.equal(finaLSales, BigInt(0));
+            assert.equal(
+              finalDeployerBalance,
+              initialDeployerBalance + startingSales - gasCost,
+            );
+          });
         });
       });
     });

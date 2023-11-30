@@ -126,11 +126,10 @@ contract NFTMarket is Context, ReentrancyGuard {
         address nftAddress,
         uint256 tokenId
     ) internal view returns (bool) {
-        IERC721 nft = IERC721(nftAddress);
+        ERC721 nft = ERC721(nftAddress);
         bool isApproved = nft.getApproved(tokenId) == address(this);
         address nftOwner = nft.ownerOf(tokenId);
         bool isApprovedForAll = nft.isApprovedForAll(nftOwner, address(this));
-        console.log(">>>", isApproved, isApprovedForAll);
         return isApproved || isApprovedForAll;
     }
 

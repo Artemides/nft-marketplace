@@ -8,14 +8,12 @@ import { assert, expect } from "chai";
   ? describe.skip
   : describe("Astro NFT", () => {
       const TOKEN_URI = "ipfs://pinata.gateway/";
-      let deployerSigner: Signer;
-      let buyerSigner: Signer;
+      let deployer: Signer;
+      let signer: Signer;
       let Astro: AstroNFT;
 
       beforeEach(async () => {
-        const { deployer, buyer } = await getNamedAccounts();
-        deployerSigner = await ethers.getSigner(deployer);
-        buyerSigner = await ethers.getSigner(buyer);
+        [deployer, signer] = await ethers.getSigners();
         await deployments.fixture(["all"]);
         Astro = await ethers.getContract("AstroNFT", deployer);
       });
@@ -47,7 +45,7 @@ import { assert, expect } from "chai";
         });
 
         it("should let update nft URI only to Token Owner", async () => {
-          const tx = Astro.connect(buyerSigner).updateTokenURI(tokenId, newURI);
+          const tx = Astro.connect(signer).updateTokenURI(tokenId, newURI);
           await expect(tx).to.be.revertedWithCustomError(
             Astro,
             "Astro__OnlyOwner",
@@ -64,7 +62,7 @@ import { assert, expect } from "chai";
 
         describe("Burn Token", () => {
           it("reverts an attempt of burning a non existing token", async () => {
-            const tx = Astro.connect(buyerSigner).burn(tokenId + BigInt(1));
+            const tx = Astro.connect(signer).burn(tokenId + BigInt(1));
             await expect(tx).to.revertedWithCustomError(
               Astro,
               "ERC721NonexistentToken",
@@ -72,7 +70,7 @@ import { assert, expect } from "chai";
           });
 
           it("should allow only the owner to burn the token", async () => {
-            const tx = Astro.connect(buyerSigner).burn(tokenId);
+            const tx = Astro.connect(signer).burn(tokenId);
             await expect(tx).to.revertedWithCustomError(
               Astro,
               "ERC721InsufficientApproval",
@@ -81,12 +79,12 @@ import { assert, expect } from "chai";
 
           it("should burn the token and remove its URI", async () => {
             const tx = Astro.burn(tokenId);
-            const deployerAddress = await deployerSigner.getAddress();
+            const deployerAddress = await deployer.getAddress();
             await expect(tx)
               .to.emit(Astro, Astro.getEvent("Transfer").name)
               .withArgs(deployerAddress, ethers.ZeroAddress, tokenId);
 
-            const balance = await Astro.balanceOf(deployerSigner);
+            const balance = await Astro.balanceOf(deployer);
             assert.equal(balance, BigInt(0));
           });
 
